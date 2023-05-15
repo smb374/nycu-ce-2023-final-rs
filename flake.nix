@@ -22,7 +22,7 @@
 
       perSystem = { config, self', inputs', lib, pkgs, system, ... }:
         let
-          crateName = "simple-binary";
+          crateName = "simple-rsa";
           crateOutputs = config.nci.outputs.${crateName};
 
           project = crateName;
@@ -59,10 +59,13 @@
 
           commonNativeBuildDeps = [
             # Add native build dependencies here.
+            pkgs.gmp.dev
+            pkgs.pkg-config
           ];
 
           runtimeDeps = [
             # Add runtime dependencies here.
+            pkgs.gmp
           ];
 
           # Inputs for building the dependencies of the crate. (Dependencies listed in Cargo.toml & Cargo.lock)
