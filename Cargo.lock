@@ -39,6 +39,7 @@ dependencies = [
 name = "simple-rsa"
 version = "0.1.0"
 dependencies = [
+ "gmp-mpfr-sys",
  "rug",
 ]
 

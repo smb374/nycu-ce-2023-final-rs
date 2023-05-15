@@ -61,6 +61,8 @@
             # Add native build dependencies here.
             pkgs.gmp.dev
             pkgs.pkg-config
+            pkgs.gnum4
+            pkgs.gnumake
           ];
 
           runtimeDeps = [
