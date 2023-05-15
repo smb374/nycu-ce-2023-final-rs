@@ -10,7 +10,7 @@ edition = "2021"
 [dependencies.rug]
 version = "1.19"
 default-features = false
-features = ["integer", "rand"]
+features = ["integer", "rand", "num-traits"]
 
 [dependencies.gmp-mpfr-sys]
 version = "~1.5"
