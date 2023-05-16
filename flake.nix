@@ -138,12 +138,9 @@
               rustToolchain
             ];
 
-            buildInputs = [
-              rustToolchain
-            ] ++ commonBuildDeps;
             nativeBuildInputs = [
               rustToolchain
-            ] ++ commonNativeBuildDeps;
+            ];
           };
         };
       flake = {
