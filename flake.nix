@@ -55,11 +55,12 @@
 
           commonBuildDeps = [
             # Add build dependencies here.
+            pkgs.gmp
           ];
 
           commonNativeBuildDeps = [
             # Add native build dependencies here.
-            pkgs.gmp.dev
+            pkgs.gmp
             pkgs.pkg-config
             pkgs.gnum4
             pkgs.gnumake
