@@ -55,12 +55,11 @@
 
           commonBuildDeps = [
             # Add build dependencies here.
-            pkgs.gmp
           ];
 
           commonNativeBuildDeps = [
             # Add native build dependencies here.
-            pkgs.gmp
+            pkgs.gmp.dev
             pkgs.pkg-config
           ];
 
@@ -114,6 +113,7 @@
             overrides = {
               inherit stdenv;
               add-env.RUSTFLAGS = moldLinking.flags;
+              add-env.LD_LIBRARY_PATH = "${pkgs.gmp}/lib:";
               add-inputs.overrideAttrs = crateInputOverrides;
             };
           };

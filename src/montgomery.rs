@@ -152,20 +152,20 @@ impl<'a> Display for Residue<'a> {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::inv_mod_2k;
-//     use crate::randint::randodd;
-//     use num_traits::One;
-//     use rug::Integer;
-//     #[test]
-//     fn test_inv_mod_2k() {
-//         let base = Integer::one() << 1024;
-//         for _ in 0..1000 {
-//             let a = randodd(1024);
-//             let correct = Integer::from(a.invert_ref(&base).unwrap());
-//             let result = inv_mod_2k(&a, 1024);
-//             assert_eq!(result, correct);
-//         }
-//     }
-// }
+#[cfg(test)]
+mod tests {
+    use super::inv_mod_2k;
+    use crate::randint::randodd;
+    use num_traits::One;
+    use rug::Integer;
+    #[test]
+    fn test_inv_mod_2k() {
+        let base = Integer::one() << 1024;
+        for _ in 0..1000 {
+            let a = randodd(1024);
+            let correct = Integer::from(a.invert_ref(&base).unwrap());
+            let result = inv_mod_2k(&a, 1024);
+            assert_eq!(result, correct);
+        }
+    }
+}
