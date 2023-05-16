@@ -14,7 +14,7 @@ impl<'a> RandIntGenerator<'a> {
                 .as_nanos(),
         );
         rng.seed(&cur);
-        Self(RandState::new())
+        Self(rng)
     }
 
     pub fn randint(&mut self, bits: usize) -> Integer {
