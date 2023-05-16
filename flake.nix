@@ -136,6 +136,11 @@
             inputsFrom = [ crateOutputs.devShell ];
             packages = with pkgs; [
               git
+              rustToolchain
+            ];
+
+            nativeBuildInputs = [
+              rustToolchain
             ];
           };
         };
