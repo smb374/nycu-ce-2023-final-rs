@@ -82,6 +82,12 @@ impl<'a> Residue<'a> {
     }
 }
 
+impl<'a> PartialEq for Residue<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.mont == other.mont && self.x == other.x
+    }
+}
+
 impl<'a> Mul for Residue<'a> {
     type Output = Residue<'a>;
     fn mul(self, rhs: Self) -> Self::Output {

@@ -7,15 +7,24 @@ impl<'a> RandIntGenerator<'a> {
         Self(RandState::new())
     }
 
-    pub fn randint(&mut self, bits: u32) -> Integer {
-        Integer::from(Integer::random_bits(bits, &mut self.0))
+    pub fn randint(&mut self, bits: usize) -> Integer {
+        Integer::from(Integer::random_bits(bits as u32, &mut self.0))
     }
 
-    pub fn randodd(&mut self, bits: u32) -> Integer {
+    pub fn randodd(&mut self, bits: usize) -> Integer {
         loop {
             let x = self.randint(bits);
             if x.is_odd() {
                 break x;
+            }
+        }
+    }
+
+    pub fn randrange(&mut self, bound: (&Integer, &Integer)) -> Integer {
+        loop {
+            let r = Integer::from(bound.1.random_below_ref(&mut self.0));
+            if r.gt(bound.0) {
+                break r;
             }
         }
     }
