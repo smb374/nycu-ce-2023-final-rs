@@ -62,8 +62,6 @@
             # Add native build dependencies here.
             pkgs.gmp
             pkgs.pkg-config
-            pkgs.gnum4
-            pkgs.gnumake
           ];
 
           runtimeDeps = [
@@ -142,7 +140,7 @@
 
             nativeBuildInputs = [
               rustToolchain
-            ];
+            ] ++ commonNativeBuildDeps;
           };
         };
       flake = {
