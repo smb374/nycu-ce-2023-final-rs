@@ -1,9 +1,19 @@
+use std::time::SystemTime;
+
 use rug::{rand::RandState, Integer};
 
 pub struct RandIntGenerator<'a>(RandState<'a>);
 
 impl<'a> RandIntGenerator<'a> {
     pub fn new() -> Self {
+        let mut rng = RandState::new();
+        let cur = Integer::from(
+            SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        );
+        rng.seed(&cur);
         Self(RandState::new())
     }
 

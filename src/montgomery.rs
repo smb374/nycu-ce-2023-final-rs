@@ -3,6 +3,18 @@ use std::{fmt::Display, ops::Mul};
 use num_traits::One;
 use rug::Integer;
 
+fn inv_mod_2k(a: &Integer, k: usize) -> Integer {
+    assert!(a.lt(&(Integer::one() << k)));
+    let mut x = Integer::ZERO;
+    let mut b = Integer::one();
+    for i in 0..k {
+        let x_i = Integer::from(&b & 1);
+        x |= Integer::from(&x_i << i);
+        b = (&b - a * x_i) >> 1;
+    }
+    x
+}
+
 #[allow(dead_code)]
 #[derive(Eq, Clone, Debug)]
 pub struct Montgomery {
@@ -26,7 +38,8 @@ impl Montgomery {
         let r = Integer::one() << bits;
         let r2 = (Integer::one() << (bits << 1)) % &modulus;
         let r_mask = r.clone() - Integer::one();
-        let n_neg_inv: Integer = &r - Integer::from(modulus.invert_ref(&r).unwrap());
+        // let n_neg_inv: Integer = &r - Integer::from(modulus.invert_ref(&r).unwrap());
+        let n_neg_inv: Integer = &r - inv_mod_2k(&modulus, bits);
         Self {
             n: modulus,
             n_neg_inv,
@@ -133,5 +146,24 @@ impl<'a> Display for Residue<'a> {
             self.x, self.mont.n,
         )?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::inv_mod_2k;
+    use crate::randint::RandIntGenerator;
+    use num_traits::One;
+    use rug::Integer;
+    #[test]
+    fn test_inv_mod_2k() {
+        let mut rng = RandIntGenerator::new();
+        let base = Integer::one() << 1024;
+        for _ in 0..100 {
+            let a = rng.randodd(1024);
+            let correct = Integer::from(a.invert_ref(&base).unwrap());
+            let result = inv_mod_2k(&a, 1024);
+            assert_eq!(result, correct);
+        }
     }
 }
