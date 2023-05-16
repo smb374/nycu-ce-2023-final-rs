@@ -3,7 +3,7 @@ use rug::Integer;
 
 use crate::{
     montgomery::{Montgomery, Residue},
-    randint::RandIntGenerator,
+    randint::{randodd, randrange},
 };
 
 const SMALL_PRIMES: [u32; 168] = [
@@ -50,7 +50,6 @@ impl<'a> PrimeTestCtx<'a> {
     fn miller_rabin(&self) -> bool {
         let mut r = 0;
         let mut d = self.n1.clone();
-        let mut rng = RandIntGenerator::new();
         let n2 = self.n - Integer::from(2);
         let two = Integer::from(2);
         while d.is_even() {
@@ -58,7 +57,7 @@ impl<'a> PrimeTestCtx<'a> {
             r += 1;
         }
         'outer: for _ in 0..10 {
-            let a = Residue::transform(rng.randrange((&two, &n2)), self.mont);
+            let a = Residue::transform(randrange((&two, &n2)), self.mont);
             let mut x = a.pow_mod(&d);
             if x == self.one || x == self.n1r {
                 continue 'outer;
@@ -95,9 +94,8 @@ fn baille_psw(p: &Integer, bits: usize) -> bool {
 }
 
 pub fn gen_prime(bits: usize) -> Integer {
-    let mut rng = RandIntGenerator::new();
     loop {
-        let p = rng.randodd(bits);
+        let p = randodd(bits);
         if baille_psw(&p, bits) {
             break p;
         }

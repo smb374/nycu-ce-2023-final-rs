@@ -2,24 +2,20 @@ mod montgomery;
 mod prime;
 mod randint;
 
-use std::{hint::black_box, time::Instant};
+use num_traits::One;
+use rug::Integer;
 
 use crate::prime::gen_prime;
 
 fn main() {
     let bits = 1024;
-    println!("{}-bit Prime generation...", bits);
-    println!("Test: p = {}", gen_prime(bits));
-    {
-        let now = Instant::now();
-        for _ in 0..100 {
-            black_box(gen_prime(bits));
-        }
-        let elapsed = now.elapsed();
-        println!(
-            "Average runtime for gen_prime({}): {:.2?}",
-            bits,
-            elapsed / 100
-        );
-    }
+    let p = gen_prime(bits);
+    let q = gen_prime(bits);
+    let n = Integer::from(&p * &q);
+    let r = (&p - Integer::one()) * (&q - Integer::one());
+    let e = Integer::from(65537);
+    let d = Integer::from(e.invert_ref(&r).unwrap());
+    println!("N = {:x}", n);
+    println!("e = {:x}", e);
+    println!("d = {:x}", d);
 }

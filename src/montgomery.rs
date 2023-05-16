@@ -4,13 +4,16 @@ use num_traits::One;
 use rug::Integer;
 
 fn inv_mod_2k(a: &Integer, k: usize) -> Integer {
-    assert!(a.lt(&(Integer::one() << k)));
     let mut x = Integer::ZERO;
     let mut b = Integer::one();
     for i in 0..k {
-        let x_i = Integer::from(&b & 1);
-        x |= Integer::from(&x_i << i);
-        b = (&b - a * x_i) >> 1;
+        let x_i = &b & Integer::one();
+        if x_i == Integer::one() {
+            x |= x_i << i;
+            b = Integer::from(&b - a) >> 1;
+        } else {
+            b >>= 1;
+        }
     }
     x
 }
@@ -73,7 +76,7 @@ impl<'a> Residue<'a> {
     }
 
     pub fn transform(x: Integer, mont: &'a Montgomery) -> Self {
-        Self::new(x * &mont.r % &mont.n, mont)
+        Self::new((x << mont.bits) % &mont.n, mont)
     }
 
     pub fn recover(&self) -> Integer {
@@ -152,15 +155,14 @@ impl<'a> Display for Residue<'a> {
 #[cfg(test)]
 mod tests {
     use super::inv_mod_2k;
-    use crate::randint::RandIntGenerator;
+    use crate::randint::randodd;
     use num_traits::One;
     use rug::Integer;
     #[test]
     fn test_inv_mod_2k() {
-        let mut rng = RandIntGenerator::new();
         let base = Integer::one() << 1024;
-        for _ in 0..100 {
-            let a = rng.randodd(1024);
+        for _ in 0..1000 {
+            let a = randodd(1024);
             let correct = Integer::from(a.invert_ref(&base).unwrap());
             let result = inv_mod_2k(&a, 1024);
             assert_eq!(result, correct);

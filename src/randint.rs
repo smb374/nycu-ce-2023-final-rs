@@ -1,11 +1,15 @@
-use std::time::SystemTime;
+use std::{cell::RefCell, rc::Rc, thread_local, time::SystemTime};
 
 use rug::{rand::RandState, Integer};
+
+thread_local! {
+    pub static GLOBAL_RNG: Rc<RefCell<RandIntGenerator<'static>>> = Rc::new(RefCell::new(RandIntGenerator::new()));
+}
 
 pub struct RandIntGenerator<'a>(RandState<'a>);
 
 impl<'a> RandIntGenerator<'a> {
-    pub fn new() -> Self {
+    fn new() -> Self {
         let mut rng = RandState::new();
         let cur = Integer::from(
             SystemTime::now()
@@ -16,26 +20,32 @@ impl<'a> RandIntGenerator<'a> {
         rng.seed(&cur);
         Self(rng)
     }
+}
 
-    pub fn randint(&mut self, bits: usize) -> Integer {
-        Integer::from(Integer::random_bits(bits as u32, &mut self.0))
-    }
+pub fn randint(bits: usize) -> Integer {
+    GLOBAL_RNG.with(|rng| {
+        let mut rng = rng.borrow_mut();
+        Integer::from(Integer::random_bits(bits as u32, &mut rng.0))
+    })
+}
 
-    pub fn randodd(&mut self, bits: usize) -> Integer {
-        loop {
-            let x = self.randint(bits);
-            if x.is_odd() {
-                break x;
-            }
+pub fn randodd(bits: usize) -> Integer {
+    loop {
+        let x = randint(bits);
+        if x.is_odd() {
+            break x;
         }
     }
+}
 
-    pub fn randrange(&mut self, bound: (&Integer, &Integer)) -> Integer {
-        loop {
-            let r = Integer::from(bound.1.random_below_ref(&mut self.0));
-            if r.gt(bound.0) {
-                break r;
-            }
+pub fn randrange(bound: (&Integer, &Integer)) -> Integer {
+    loop {
+        let r = GLOBAL_RNG.with(|rng| {
+            let mut rng = rng.borrow_mut();
+            Integer::from(bound.1.random_below_ref(&mut rng.0))
+        });
+        if r.gt(bound.0) {
+            break r;
         }
     }
 }
