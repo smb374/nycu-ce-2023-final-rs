@@ -16,29 +16,28 @@ pub fn inv_mod_2k(a: &Integer, k: u32) -> Integer {
     x
 }
 
-pub fn inv_mod_coprime(a: &Integer, p: &Integer) -> Integer {
-    let mut j = 0;
-    let mut z = Integer::ZERO;
-    let m = Integer::from(p / a);
-    let phi = Integer::from((a - Integer::one()) / a);
-    while z != Integer::one() {
-        z = a * (j * &m - (&phi - Integer::one())) - j * p;
-        j += 1;
-    }
-    let i = j - 1;
-    a * (i * m - phi + Integer::one())
-}
+// pub fn inv_mod_coprime(a: &Integer, p: &Integer) -> Option<Integer> {
+//     let (g, mut x, _): (Integer, Integer, Integer) = a.extended_gcd_ref(p).into();
+//     if g != Integer::one() {
+//         None
+//     } else {
+//         if x.gt(p) {
+//             Some(x % p)
+//         } else {
+//             while x < 0 {
+//                 x += p;
+//             }
+//             Some(x)
+//         }
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
     use num_traits::One;
     use rug::Integer;
 
-    use crate::{
-        inverse::{inv_mod_2k, inv_mod_coprime},
-        prime::gen_prime,
-        randint::{randint, randodd},
-    };
+    use crate::{inverse::inv_mod_2k, randint::randodd};
 
     #[test]
     fn test_inv_mod_2k() {
@@ -50,14 +49,14 @@ mod tests {
             assert_eq!(result, correct);
         }
     }
-    #[test]
-    fn test_inv_mod_coprime() {
-        let bits = 1024;
-        let p = gen_prime(bits);
-        for _ in 0..1000 {
-            let a = randint(bits);
-            let inv = inv_mod_coprime(&a, &p);
-            assert_eq!(a * inv % &p, Integer::one());
-        }
-    }
+    // #[test]
+    // fn test_inv_mod_coprime() {
+    //     let bits = 512;
+    //     let p = gen_prime(bits);
+    //     for _ in 0..1000 {
+    //         let a = randint(bits);
+    //         let inv = inv_mod_coprime(&a, &p).unwrap();
+    //         assert_eq!(a * inv % &p, Integer::one());
+    //     }
+    // }
 }

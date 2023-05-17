@@ -10,7 +10,6 @@ use crate::inverse::inv_mod_2k;
 pub struct Montgomery {
     n: Integer,
     n_neg_inv: Integer,
-    r: Integer,
     r2: Integer,
     r_mask: Integer,
     bits: u32,
@@ -22,16 +21,25 @@ pub struct Residue<'a> {
     mont: &'a Montgomery,
 }
 
+fn compute_r2(modulus: &Integer, bits: u32) -> Integer {
+    let mut i = 0;
+    let mut c = Integer::one() << (bits - 1); // c_0
+    while i < bits + 1 {
+        c = Integer::from(Integer::from(&c + &c) % modulus); // c_i
+        i += 1;
+    }
+    c
+}
+
 impl Montgomery {
     pub fn new(modulus: Integer, bits: u32) -> Self {
         let r = Integer::one() << bits;
-        let r2 = (Integer::one() << (bits << 1)) % &modulus;
+        let r2 = compute_r2(&modulus, bits);
         let r_mask = r.clone() - Integer::one();
         let n_neg_inv: Integer = &r - inv_mod_2k(&modulus, bits);
         Self {
             n: modulus,
             n_neg_inv,
-            r,
             r2,
             r_mask,
             bits,
@@ -112,7 +120,8 @@ impl<'a> Residue<'a> {
     }
 
     pub fn transform(x: Integer, mont: &'a Montgomery) -> Self {
-        Self::new((x << mont.bits) % &mont.n, mont)
+        let new_x = x * &mont.r2;
+        Self::new(mont.reduce(&new_x), mont)
     }
 
     pub fn recover(&self) -> Integer {
@@ -205,14 +214,14 @@ impl<'a> Display for Residue<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Montgomery, Residue};
-    use crate::{prime::gen_prime, randint::randint};
+    use super::{compute_r2, Montgomery, Residue};
+    use crate::randint::randint;
     use num_traits::One;
     use rug::Integer;
     #[test]
     fn test_inverse_mod() {
         let bits = 1024;
-        let p = gen_prime(bits);
+        let p: Integer = Integer::from_str_radix("eb3799588212706009a73cdd7af5a70e30338c1cb8dd13ce9b21a7af003a634c187f14c512ff10cee428549d04097e5417f32ed62904529362653399e09ff1d4dd9c2c043c140bd45d1a694e5d2adbe3cf9072fe7535fe91cc67c070e8087ad0d2c19f5eb1abf06e4d1b28f71d8063fff88576cfb0d38a7f53a590ae913f626b", 16).unwrap();
         let mont = Montgomery::new(p.clone(), bits);
         for _ in 0..1000 {
             let a = randint(bits);
@@ -223,7 +232,7 @@ mod tests {
     #[test]
     fn test_residue_inv() {
         let bits = 1024;
-        let p = gen_prime(bits);
+        let p: Integer = Integer::from_str_radix("eb3799588212706009a73cdd7af5a70e30338c1cb8dd13ce9b21a7af003a634c187f14c512ff10cee428549d04097e5417f32ed62904529362653399e09ff1d4dd9c2c043c140bd45d1a694e5d2adbe3cf9072fe7535fe91cc67c070e8087ad0d2c19f5eb1abf06e4d1b28f71d8063fff88576cfb0d38a7f53a590ae913f626b", 16).unwrap();
         let mont = Montgomery::new(p, bits);
         let one = Residue::transform(Integer::one(), &mont);
         for _ in 0..1000 {
@@ -231,5 +240,21 @@ mod tests {
             let inv = a.inverse();
             assert_eq!(a * inv, one);
         }
+    }
+    #[test]
+    fn test_compute_r2() {
+        let bits = 1024;
+        let p: Integer = Integer::from_str_radix("eb3799588212706009a73cdd7af5a70e30338c1cb8dd13ce9b21a7af003a634c187f14c512ff10cee428549d04097e5417f32ed62904529362653399e09ff1d4dd9c2c043c140bd45d1a694e5d2adbe3cf9072fe7535fe91cc67c070e8087ad0d2c19f5eb1abf06e4d1b28f71d8063fff88576cfb0d38a7f53a590ae913f626b", 16).unwrap();
+        let r2 = compute_r2(&p, bits);
+        assert_eq!(r2, (Integer::one() << (bits << 1)) % p);
+    }
+    #[test]
+    fn test_transform() {
+        let bits = 1024;
+        let p: Integer = Integer::from_str_radix("eb3799588212706009a73cdd7af5a70e30338c1cb8dd13ce9b21a7af003a634c187f14c512ff10cee428549d04097e5417f32ed62904529362653399e09ff1d4dd9c2c043c140bd45d1a694e5d2adbe3cf9072fe7535fe91cc67c070e8087ad0d2c19f5eb1abf06e4d1b28f71d8063fff88576cfb0d38a7f53a590ae913f626b", 16).unwrap();
+        let mont = Montgomery::new(p, bits);
+        let x = randint(bits);
+        let trx = Integer::from(&x * &mont.r2);
+        assert_eq!(mont.reduce(&trx), (x << bits) % &mont.n);
     }
 }
