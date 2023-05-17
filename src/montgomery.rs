@@ -5,7 +5,6 @@ use rug::Integer;
 
 use crate::inverse::inv_mod_2k;
 
-#[allow(dead_code)]
 #[derive(Eq, Clone, Debug)]
 pub struct Montgomery {
     n: Integer,
