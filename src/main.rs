@@ -1,3 +1,4 @@
+mod inverse;
 mod montgomery;
 mod prime;
 mod randint;

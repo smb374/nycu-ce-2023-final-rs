@@ -3,20 +3,7 @@ use std::{fmt::Display, ops::Mul};
 use num_traits::One;
 use rug::Integer;
 
-fn inv_mod_2k(a: &Integer, k: u32) -> Integer {
-    let mut x = Integer::ZERO;
-    let mut b = Integer::one();
-    for i in 0..k {
-        let x_i = &b & Integer::one();
-        if x_i == Integer::one() {
-            x |= x_i << i;
-            b = Integer::from(&b - a) >> 1;
-        } else {
-            b >>= 1;
-        }
-    }
-    x
-}
+use crate::inverse::inv_mod_2k;
 
 #[allow(dead_code)]
 #[derive(Eq, Clone, Debug)]
@@ -97,7 +84,6 @@ impl Montgomery {
     }
 
     pub fn inverse(&self, a: &Integer) -> Integer {
-        assert_eq!(Integer::from(a.gcd_ref(&self.n)), Integer::one());
         let (mut r, mut k) = self.alm_inverse(a);
         let m = self.bits;
         if k > m {
@@ -219,23 +205,10 @@ impl<'a> Display for Residue<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::{inv_mod_2k, Montgomery, Residue};
-    use crate::{
-        prime::gen_prime,
-        randint::{randint, randodd},
-    };
+    use super::{Montgomery, Residue};
+    use crate::{prime::gen_prime, randint::randint};
     use num_traits::One;
     use rug::Integer;
-    #[test]
-    fn test_inv_mod_2k() {
-        let base = Integer::one() << 1024;
-        for _ in 0..1000 {
-            let a = randodd(1024);
-            let correct = Integer::from(a.invert_ref(&base).unwrap());
-            let result = inv_mod_2k(&a, 1024);
-            assert_eq!(result, correct);
-        }
-    }
     #[test]
     fn test_inverse_mod() {
         let bits = 1024;
