@@ -56,7 +56,7 @@ impl<'a> PrimeTestCtx<'a> {
             d >>= 1;
             r += 1;
         }
-        'outer: for _ in 0..10 {
+        'outer: for _ in 0..13 {
             let a = Residue::transform(randrange((&two, &n2)), self.mont);
             let mut x = a.pow_mod(&d);
             if x == self.one || x == self.n1r {

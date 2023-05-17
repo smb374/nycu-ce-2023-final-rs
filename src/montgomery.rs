@@ -46,8 +46,8 @@ impl Montgomery {
         }
     }
 
-    pub fn reduce(&self, t: &Integer) -> Integer {
-        let m = (Integer::from(t & &self.r_mask) * &self.n_neg_inv) & &self.r_mask;
+    pub fn reduce(&self, t: Integer) -> Integer {
+        let m = (Integer::from(&t & &self.r_mask) * &self.n_neg_inv) & &self.r_mask;
         let new_t = (t + m * &self.n) >> self.bits;
         if new_t >= self.n {
             new_t - &self.n
@@ -91,20 +91,24 @@ impl Montgomery {
         (&self.n - r, k)
     }
 
-    pub fn inverse(&self, a: &Integer) -> Integer {
-        let (mut r, mut k) = self.alm_inverse(a);
+    // From https://www.researchgate.net/publication/3387259_Improved_Montgomery_modular_inverse_algorithm
+    fn u_inv(&self, a: &Integer, is_mont_form: bool) -> Integer {
         let m = self.bits;
-        if k > m {
-            r = self.reduce(&r);
-            k -= m;
+        let (mut r, k) = self.alm_inverse(a);
+        if k != m {
+            // correction if k != m
+            let r_cor = r * (Integer::one() << ((m << 1) - k));
+            r = self.reduce(r_cor);
         }
-        let res = r * (Integer::one() << (m - k));
-        self.reduce(&res)
+        if is_mont_form {
+            self.reduce(r * &self.r2)
+        } else {
+            self.reduce(r)
+        }
     }
 
-    pub fn inverse_mod(&self, a: &Integer) -> Integer {
-        let am = Integer::from(a % &self.n);
-        self.inverse(&am)
+    pub fn inverse(&self, a: &Integer) -> Integer {
+        self.u_inv(a, false)
     }
 }
 
@@ -120,27 +124,16 @@ impl<'a> Residue<'a> {
     }
 
     pub fn transform(x: Integer, mont: &'a Montgomery) -> Self {
-        let new_x = x * &mont.r2;
-        Self::new(mont.reduce(&new_x), mont)
+        Self::new(mont.reduce(x * &mont.r2), mont)
     }
 
     pub fn recover(&self) -> Integer {
-        self.mont.reduce(&self.x)
+        self.mont.reduce(self.x.clone())
     }
 
     pub fn inverse(&self) -> Self {
-        let n = self.mont.n.significant_bits();
-        let m = self.mont.bits;
-        let (r_int, mut k) = self.mont.alm_inverse(&self.x);
-        let mut r = Residue::new(r_int, self.mont);
-        let r2 = Residue::new(self.mont.r2.clone(), self.mont);
-        if k >= n && m >= k {
-            r = &r * &r2;
-            k += m;
-        }
-        let b = Residue::new(Integer::one() << (2 * m - k), self.mont);
-        r = &r * &r2;
-        r * b
+        let new_x = self.mont.u_inv(&self.x, true);
+        Self::new(new_x, self.mont)
     }
 
     pub fn pow_mod(&self, exp: &Integer) -> Self {
@@ -169,7 +162,7 @@ impl<'a> Mul for Residue<'a> {
     fn mul(self, rhs: Self) -> Self::Output {
         assert_eq!(self.mont, rhs.mont);
         let new_x = self.x * &rhs.x;
-        Self::new(self.mont.reduce(&new_x), self.mont)
+        Self::new(self.mont.reduce(new_x), self.mont)
     }
 }
 
@@ -178,7 +171,7 @@ impl<'a, 'b> Mul for &'b Residue<'a> {
     fn mul(self, rhs: Self) -> Self::Output {
         assert_eq!(self.mont, rhs.mont);
         let new_x = Integer::from(&self.x * &rhs.x);
-        Residue::new(self.mont.reduce(&new_x), self.mont)
+        Residue::new(self.mont.reduce(new_x), self.mont)
     }
 }
 
@@ -187,7 +180,7 @@ impl<'a, 'b> Mul<Residue<'a>> for &'b Residue<'a> {
     fn mul(self, rhs: Residue<'a>) -> Self::Output {
         assert_eq!(self.mont, rhs.mont);
         let new_x = Integer::from(&self.x * &rhs.x);
-        Residue::new(self.mont.reduce(&new_x), self.mont)
+        Residue::new(self.mont.reduce(new_x), self.mont)
     }
 }
 
@@ -196,7 +189,7 @@ impl<'a, 'b> Mul<&'b Residue<'a>> for Residue<'a> {
     fn mul(self, rhs: &'b Residue<'a>) -> Self::Output {
         assert_eq!(self.mont, rhs.mont);
         let new_x = self.x * &rhs.x;
-        Residue::new(self.mont.reduce(&new_x), self.mont)
+        Residue::new(self.mont.reduce(new_x), self.mont)
     }
 }
 
@@ -225,7 +218,7 @@ mod tests {
         let mont = Montgomery::new(p.clone(), bits);
         for _ in 0..1000 {
             let a = randint(bits);
-            let inv = mont.inverse_mod(&a);
+            let inv = mont.inverse(&a);
             assert_eq!((a * inv) % &p, Integer::one());
         }
     }
@@ -255,6 +248,6 @@ mod tests {
         let mont = Montgomery::new(p, bits);
         let x = randint(bits);
         let trx = Integer::from(&x * &mont.r2);
-        assert_eq!(mont.reduce(&trx), (x << bits) % &mont.n);
+        assert_eq!(mont.reduce(trx), (x << bits) % &mont.n);
     }
 }
