@@ -74,7 +74,7 @@ impl<'a> PrimeTestCtx<'a> {
     }
 }
 
-fn baille_psw(p: &Integer, bits: usize) -> bool {
+fn baille_psw(p: &Integer, bits: u32) -> bool {
     if p.eq(&Integer::ZERO) {
         false
     } else if p.is_even() {
@@ -93,7 +93,7 @@ fn baille_psw(p: &Integer, bits: usize) -> bool {
     }
 }
 
-pub fn gen_prime(bits: usize) -> Integer {
+pub fn gen_prime(bits: u32) -> Integer {
     loop {
         let p = randodd(bits);
         if baille_psw(&p, bits) {

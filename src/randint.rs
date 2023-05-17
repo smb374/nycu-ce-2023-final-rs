@@ -22,14 +22,14 @@ impl<'a> RandIntGenerator<'a> {
     }
 }
 
-pub fn randint(bits: usize) -> Integer {
+pub fn randint(bits: u32) -> Integer {
     GLOBAL_RNG.with(|rng| {
         let mut rng = rng.borrow_mut();
-        Integer::from(Integer::random_bits(bits as u32, &mut rng.0))
+        Integer::from(Integer::random_bits(bits, &mut rng.0))
     })
 }
 
-pub fn randodd(bits: usize) -> Integer {
+pub fn randodd(bits: u32) -> Integer {
     loop {
         let x = randint(bits);
         if x.is_odd() {
