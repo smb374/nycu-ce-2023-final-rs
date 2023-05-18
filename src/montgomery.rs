@@ -24,7 +24,7 @@ fn compute_r2(modulus: &Integer, bits: u32) -> Integer {
     let mut i = 0;
     let mut c = Integer::one() << (bits - 1); // c_0
     while i < bits + 1 {
-        c = Integer::from(Integer::from(&c + &c) % modulus); // c_i
+        c = Integer::from(&c + &c) % modulus; // c_i
         i += 1;
     }
     c
@@ -34,7 +34,7 @@ impl Montgomery {
     pub fn new(modulus: Integer, bits: u32) -> Self {
         let r = Integer::one() << bits;
         let r2 = compute_r2(&modulus, bits);
-        let r_mask = r.clone() - Integer::one();
+        let r_mask = &r - Integer::one();
         let n_neg_inv: Integer = &r - inv_mod_2k(&modulus, bits);
         Self {
             n: modulus,
@@ -122,6 +122,14 @@ impl<'a> Residue<'a> {
         Self { x, mont }
     }
 
+    pub fn frm_mont_integer(x: Integer, mont: &'a Montgomery) -> Self {
+        Self::new(x, mont)
+    }
+
+    pub fn to_mont_integer(self) -> Integer {
+        self.x
+    }
+
     pub fn transform(x: Integer, mont: &'a Montgomery) -> Self {
         Self::new(mont.reduce(x * &mont.r2), mont)
     }
@@ -136,17 +144,16 @@ impl<'a> Residue<'a> {
     }
 
     pub fn pow_mod(&self, exp: &Integer) -> Self {
-        let mut exp = exp.clone();
-        let mut prod = Self::transform(Integer::one(), self.mont);
-        let mut base = self.clone();
-        while exp > 0 {
-            if exp.is_odd() {
-                prod = prod * &base;
+        let mut a = Self::transform(Integer::one(), self.mont);
+        let mut t = exp.significant_bits() - 1;
+        while t != u32::MAX {
+            a = &a * &a;
+            if exp.get_bit(t) {
+                a = &a * self;
             }
-            exp >>= 1;
-            base = &base * &base;
+            t = t.wrapping_sub(1);
         }
-        prod
+        a
     }
 }
 
@@ -245,8 +252,39 @@ mod tests {
         let bits = 1024;
         let p: Integer = Integer::from_str_radix("eb3799588212706009a73cdd7af5a70e30338c1cb8dd13ce9b21a7af003a634c187f14c512ff10cee428549d04097e5417f32ed62904529362653399e09ff1d4dd9c2c043c140bd45d1a694e5d2adbe3cf9072fe7535fe91cc67c070e8087ad0d2c19f5eb1abf06e4d1b28f71d8063fff88576cfb0d38a7f53a590ae913f626b", 16).unwrap();
         let mont = Montgomery::new(p, bits);
-        let x = randint(bits);
-        let trx = Integer::from(&x * &mont.r2);
-        assert_eq!(mont.reduce(trx), (x << bits) % &mont.n);
+        for _ in 0..1000 {
+            let x = randint(bits);
+            let trx = Integer::from(&x * &mont.r2);
+            assert_eq!(mont.reduce(trx), (x << bits) % &mont.n);
+        }
+    }
+    #[test]
+    fn test_mul() {
+        let bits = 1024;
+        let p: Integer = Integer::from_str_radix("eb3799588212706009a73cdd7af5a70e30338c1cb8dd13ce9b21a7af003a634c187f14c512ff10cee428549d04097e5417f32ed62904529362653399e09ff1d4dd9c2c043c140bd45d1a694e5d2adbe3cf9072fe7535fe91cc67c070e8087ad0d2c19f5eb1abf06e4d1b28f71d8063fff88576cfb0d38a7f53a590ae913f626b", 16).unwrap();
+        let mont = Montgomery::new(p.clone(), bits);
+        for _ in 0..1000 {
+            let x = randint(bits);
+            let y = randint(bits);
+            let corr = Integer::from(&x * &y) % &p;
+            let xm = Residue::transform(x, &mont);
+            let ym = Residue::transform(y, &mont);
+            let res = xm * ym;
+            assert_eq!(res.recover(), corr);
+        }
+    }
+    #[test]
+    fn test_pow_mod() {
+        let bits = 1024;
+        let p: Integer = Integer::from_str_radix("eb3799588212706009a73cdd7af5a70e30338c1cb8dd13ce9b21a7af003a634c187f14c512ff10cee428549d04097e5417f32ed62904529362653399e09ff1d4dd9c2c043c140bd45d1a694e5d2adbe3cf9072fe7535fe91cc67c070e8087ad0d2c19f5eb1abf06e4d1b28f71d8063fff88576cfb0d38a7f53a590ae913f626b", 16).unwrap();
+        let mont = Montgomery::new(p.clone(), bits);
+        for _ in 0..1000 {
+            let x = randint(bits);
+            let y = randint(bits >> 1);
+            let corr = Integer::from(x.pow_mod_ref(&y, &p).unwrap());
+            let xm = Residue::transform(x, &mont);
+            let res = xm.pow_mod(&y);
+            assert_eq!(res.recover(), corr);
+        }
     }
 }
