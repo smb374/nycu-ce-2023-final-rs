@@ -122,7 +122,7 @@ impl<'a> Residue<'a> {
         Self { x, mont }
     }
 
-    pub fn frm_mont_integer(x: Integer, mont: &'a Montgomery) -> Self {
+    pub fn from_mont_integer(x: Integer, mont: &'a Montgomery) -> Self {
         Self::new(x, mont)
     }
 

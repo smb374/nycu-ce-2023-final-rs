@@ -56,7 +56,7 @@ impl<'a> PrimeTestCtx<'a> {
             d >>= 1;
             r += 1;
         }
-        'outer: for _ in 0..13 {
+        'outer: for _ in 0..10 {
             let a = Residue::transform(randrange((&two, &n2)), self.mont);
             let mut x = a.pow_mod(&d);
             if x == self.one || x == self.n1r {
@@ -75,9 +75,7 @@ impl<'a> PrimeTestCtx<'a> {
 }
 
 fn baille_psw(p: &Integer, bits: u32) -> bool {
-    if p.eq(&Integer::ZERO) {
-        false
-    } else if p.is_even() {
+    if p.eq(&Integer::ZERO) || p.is_even() {
         false
     } else {
         for sp in SMALL_PRIMES {
@@ -88,7 +86,7 @@ fn baille_psw(p: &Integer, bits: u32) -> bool {
             }
         }
         let mont = Montgomery::new(p.clone(), bits);
-        let ctx = PrimeTestCtx::new(&p, &mont);
+        let ctx = PrimeTestCtx::new(p, &mont);
         ctx.fermat() && ctx.miller_rabin()
     }
 }

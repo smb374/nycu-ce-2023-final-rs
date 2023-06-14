@@ -1,12 +1,6 @@
-mod inverse;
-mod montgomery;
-mod prime;
-mod randint;
-
 use num_traits::One;
 use rug::Integer;
-
-use crate::prime::gen_prime;
+use simple_rsa::prime::gen_prime;
 
 fn main() {
     let bits = 1024;
